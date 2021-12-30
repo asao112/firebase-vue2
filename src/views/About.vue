@@ -10,7 +10,7 @@
       <h4 class="subtitle1">ユーザ名</h4>
       <form class="userlist">
         <ul>
-          <li class="userList" v-for="userName in usernames" :key="userName">
+          <li class="userList" v-for="(userName, i) in usernames" :key="i">
             <span>{{ userName }}</span>
             <button class="userButton">walletを見る</button>
             <button>送る</button>
@@ -31,19 +31,17 @@ export default {
     }
   },
   created() {
+    console.log(this.username)
     this.$store.dispatch('setUser', {
       username: this.username,
       usernames: this.usernames
     },)
-    console.log(this.username)
     console.log(this.usernames)
   },
   methods: {
     signOut() {
-      this.$store.dispatch('signOut', {
-        displayName: this.username
-      })
+      this.$store.dispatch('signOut')
     }
-  },
+  }
 };
 </script>
