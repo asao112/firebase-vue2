@@ -12,7 +12,6 @@ export default new Vuex.Store({
     userNames: [],
     email: '',
     password: '',
-    loggedIn: false,
   },
   getters: {
     setUsername(state) {
@@ -33,31 +32,36 @@ export default new Vuex.Store({
       state.email = payload.email
       state.password = payload.password
     },
+    setUser(state, payload) {
+      state.username = payload.username
+    }
+    
   },
   actions: {
-    setUser() {
+    setUser(context, payload) {
       const db = firebase.firestore()
-      firebase.auth().onAuthStateChanged((user)=> {
-        if (user) {
-          this.state.username = user.displayName
-        }
-      });
-      db.collection('user').orderBy('namber', 'desc').limit(5)
+      firebase.auth().onAuthStateChanged((username) => {
+        payload.username = username.displayName;
+      })
+      db.collection('user').orderBy('namber', 'desc').limit(3)
       .get()
       .then((querySnapshot) => {
         querySnapshot.forEach((doc) => {
           // doc.data() is never undefined for query doc snapshots
           console.log(doc.get('username'))
-          this.state.userNames.splice(4, this.state.userNames.length)
           this.state.userNames.push(doc.get('username')) 
           console.log(this.state.userNames)
         });
       })
+      .then(() => {
+        context.commit('setUser', payload)
+      })
       .catch((error) => {
         console.log("Error getting documents: ", error);
       });
+      console.log(this.state.userNames)
     },
-    signOut() {
+    signOut(context, payload) {
       firebase.auth().signOut()
       .then(() => {
         console.log('ログアウトします');
@@ -68,6 +72,8 @@ export default new Vuex.Store({
       .catch((e) => {
         console.error('エラー :', e.message)
       })
+
+      context.commit('setUser', payload)
     },
     newRegister(context, payload) {
       firebase
