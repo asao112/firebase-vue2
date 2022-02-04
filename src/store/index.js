@@ -2,6 +2,7 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 import firebase from 'firebase'
 import router from '@/router'
+//import { set } from 'vue/types/umd'
 //import createPersistedState from 'vuex-persistedstate'
 
 Vue.use(Vuex)
@@ -9,17 +10,31 @@ Vue.use(Vuex)
 export default new Vuex.Store({
   state: {
     username: '',
-    userNames: [],
+    myWallet: '500',
+    users: [],
     email: '',
     password: '',
     loggedIn: false,
+    walletDates: [],
   },
   getters: {
     setUsername(state) {
       return state.username
     },
     setUsers(state) {
-      return state.userNames
+      return state.users
+    },
+    myWallet(state) {
+      return state.myWallet
+    },
+    walletDate(state) {
+      return state.walletDates
+    },
+    uid(state) {
+      return state.users.uid
+    },
+    name(state) {
+      return state.users.name
     }
   },
   mutations: {
@@ -37,24 +52,26 @@ export default new Vuex.Store({
   actions: {
     setUser() {
       const db = firebase.firestore()
-      firebase.auth().onAuthStateChanged((user)=> {
+      this.state.users = []
+      firebase.auth().onAuthStateChanged((user) => {
         if (user) {
           this.state.username = user.displayName
+          db.collection('user').where(firebase.firestore.FieldPath.documentId(), '!=', user.uid).limit(5)
+          .get()
+          .then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+              const userDate = {
+                uid: doc.get('uid'),
+                name: doc.data().username,
+                myWallet: doc.data().myWallet
+              }       
+              this.state.users.push(userDate) 
+            });
+          })
+          .catch((error) => {
+            console.log("Error getting documents: ", error);
+          });
         }
-      });
-      db.collection('user').orderBy('namber', 'desc').limit(5)
-      .get()
-      .then((querySnapshot) => {
-        querySnapshot.forEach((doc) => {
-          // doc.data() is never undefined for query doc snapshots
-          console.log(doc.get('username'))
-          this.state.userNames.splice(4, this.state.userNames.length)
-          this.state.userNames.push(doc.get('username')) 
-          console.log(this.state.userNames)
-        });
-      })
-      .catch((error) => {
-        console.log("Error getting documents: ", error);
       });
     },
     signOut() {
@@ -86,7 +103,7 @@ export default new Vuex.Store({
               email: payload.email,
               password: payload.password,
               username: payload.username,
-              namber: firebase.firestore.Timestamp.fromDate(new Date())
+              myWallet: this.state.myWallet
           })
         })
         .then(() => {
@@ -112,6 +129,25 @@ export default new Vuex.Store({
       })
       .catch((e) => {
         console.error('エラー :', e.message)
+      })
+    },
+    setModel(context, uid) {
+      this.state.walletDates = []
+      const user = firebase.auth().currentUser
+      const db = firebase.firestore();
+      db.collection('user').where(firebase.firestore.FieldPath.documentId(), "!=", user.uid)
+      .get()
+      .then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+          const walletDate = {
+            uid: doc.uid,
+            name: doc.data().username,
+            myWallet: doc.data().myWallet
+          }
+          this.state.walletDates.push(walletDate)
+          //this.state.walletDates = uid
+          context.commit(uid) //この状態だとuidが定義されずにcommitされている。
+        })
       })
     }
   },
