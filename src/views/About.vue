@@ -14,14 +14,14 @@
         <li class="userLists" v-for="(userDate, index) in users" v-bind:key="index">
           <span>{{userDate.name}}</span>
           <form class="userForm">
-            <button type="button" class="userWallet" @click="openModel(userDate.uid)">walletを見る</button>
+            <button type="button" class="userWallet" @click="openModel(userDate)">walletを見る</button>
             <button type="button" class="moneyTransfer">送る</button>
           </form>
         </li>
       </ul>
     </div>
     <transition>
-      <Model v-show="showContent" @click="closeModal" @open="showContent = true" @close="showContent = false"></Model>
+      <Model :val="dateItem" v-show="showContent" @click="closeModal" @open="showContent = true" @close="showContent = false"></Model>
     </transition>
   </div>
 </template>
@@ -35,6 +35,7 @@ export default {
   data() {
     return {
       showContent: false,
+      dateItem: []
     }
   },
   computed: {
@@ -47,9 +48,6 @@ export default {
     myWallet() {
       return this.$store.getters.myWallet
     },
-    uid() {
-      return this.$store.getters.uid
-    }
   },
   created() {
     this.$store.dispatch('setUser', {
@@ -57,10 +55,11 @@ export default {
     },)
   },
   methods: {
-    openModel(uid) {
+    openModel(userDate) {
       this.showContent = true
-      console.log(uid)
-      this.$store.dispatch('setModel', uid)
+      this.dateItem = userDate
+      console.log(userDate)
+      //this.$store.dispatch('setModel', userDate)
     },    
     closeModal() {
       this.showContent = false

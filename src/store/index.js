@@ -15,7 +15,6 @@ export default new Vuex.Store({
     email: '',
     password: '',
     loggedIn: false,
-    walletDates: [],
   },
   getters: {
     setUsername(state) {
@@ -27,15 +26,6 @@ export default new Vuex.Store({
     myWallet(state) {
       return state.myWallet
     },
-    walletDate(state) {
-      return state.walletDates
-    },
-    uid(state) {
-      return state.users.uid
-    },
-    name(state) {
-      return state.users.name
-    }
   },
   mutations: {
     registerState(state, payload) {
@@ -52,7 +42,6 @@ export default new Vuex.Store({
   actions: {
     setUser() {
       const db = firebase.firestore()
-      this.state.users = []
       firebase.auth().onAuthStateChanged((user) => {
         if (user) {
           this.state.username = user.displayName
@@ -65,6 +54,7 @@ export default new Vuex.Store({
                 name: doc.data().username,
                 myWallet: doc.data().myWallet
               }       
+              this.state.users.splice(4,this.state.users.length)
               this.state.users.push(userDate) 
             });
           })
@@ -131,25 +121,10 @@ export default new Vuex.Store({
         console.error('エラー :', e.message)
       })
     },
-    setModel(context, uid) {
-      this.state.walletDates = []
-      const user = firebase.auth().currentUser
-      const db = firebase.firestore();
-      db.collection('user').where(firebase.firestore.FieldPath.documentId(), "!=", user.uid)
-      .get()
-      .then((querySnapshot) => {
-        querySnapshot.forEach((doc) => {
-          const walletDate = {
-            uid: doc.uid,
-            name: doc.data().username,
-            myWallet: doc.data().myWallet
-          }
-          this.state.walletDates.push(walletDate)
-          //this.state.walletDates = uid
-          context.commit(uid) //この状態だとuidが定義されずにcommitされている。
-        })
-      })
+    /*
+    setModel(context, payload) {
     }
+    */
   },
 })
 
