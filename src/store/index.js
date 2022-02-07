@@ -2,6 +2,7 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 import firebase from 'firebase'
 import router from '@/router'
+//import { set } from 'vue/types/umd'
 //import createPersistedState from 'vuex-persistedstate'
 
 Vue.use(Vuex)
@@ -9,7 +10,8 @@ Vue.use(Vuex)
 export default new Vuex.Store({
   state: {
     username: '',
-    userNames: [],
+    myWallet: '500',
+    users: [],
     email: '',
     password: '',
     loggedIn: false,
@@ -19,8 +21,11 @@ export default new Vuex.Store({
       return state.username
     },
     setUsers(state) {
-      return state.userNames
-    }
+      return state.users
+    },
+    myWallet(state) {
+      return state.myWallet
+    },
   },
   mutations: {
     registerState(state, payload) {
@@ -37,24 +42,26 @@ export default new Vuex.Store({
   actions: {
     setUser() {
       const db = firebase.firestore()
-      firebase.auth().onAuthStateChanged((user)=> {
+      firebase.auth().onAuthStateChanged((user) => {
         if (user) {
           this.state.username = user.displayName
+          db.collection('user').where(firebase.firestore.FieldPath.documentId(), '!=', user.uid).limit(5)
+          .get()
+          .then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+              const userDate = {
+                uid: doc.get('uid'),
+                name: doc.data().username,
+                myWallet: doc.data().myWallet
+              }       
+              this.state.users.splice(4,this.state.users.length)
+              this.state.users.push(userDate) 
+            });
+          })
+          .catch((error) => {
+            console.log("Error getting documents: ", error);
+          });
         }
-      });
-      db.collection('user').orderBy('namber', 'desc').limit(5)
-      .get()
-      .then((querySnapshot) => {
-        querySnapshot.forEach((doc) => {
-          // doc.data() is never undefined for query doc snapshots
-          console.log(doc.get('username'))
-          this.state.userNames.splice(4, this.state.userNames.length)
-          this.state.userNames.push(doc.get('username')) 
-          console.log(this.state.userNames)
-        });
-      })
-      .catch((error) => {
-        console.log("Error getting documents: ", error);
       });
     },
     signOut() {
@@ -86,7 +93,7 @@ export default new Vuex.Store({
               email: payload.email,
               password: payload.password,
               username: payload.username,
-              namber: firebase.firestore.Timestamp.fromDate(new Date())
+              myWallet: this.state.myWallet
           })
         })
         .then(() => {
@@ -113,7 +120,11 @@ export default new Vuex.Store({
       .catch((e) => {
         console.error('エラー :', e.message)
       })
+    },
+    /*
+    setModel(context, payload) {
     }
+    */
   },
 })
 
