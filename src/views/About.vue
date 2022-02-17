@@ -3,7 +3,7 @@
     <ul>
       <li class="loginUser">
         <span>{{username}}さんようこそ</span>
-        <span>残高 : {{myWallet}}</span>
+        <span >残高 : {{myWallet}}</span>
         <button class="login-btn button is-info" @click="signOut">ログアウト</button>
       </li>
     </ul>
@@ -15,7 +15,7 @@
           <span>{{userDate.name}}</span>
           <form class="userForm">
             <button type="button" class="userWallet" @click="openModel(userDate)">walletを見る</button>
-            <button type="button" class="moneyTransfer">送る</button>
+            <button type="button" class="moneyTransfer" @click="openModel2(userDate)">送る</button>
           </form>
         </li>
       </ul>
@@ -23,19 +23,25 @@
     <transition>
       <Model :val="dateItem" v-show="showContent" @click="closeModal" @open="showContent = true" @close="showContent = false"></Model>
     </transition>
+    <transition>
+      <Model2 :val="dateItem" v-show="showContent2" @click="closeModel2" @open="showContent2 = true" @close="showContent2 = false"></Model2>
+    </transition>
   </div>
 </template>
 <script>
 import Model from '../views/Model.vue'
+import Model2 from '../views/Model2.vue'
 export default {
   name: 'About',
   components: {
-    Model
+    Model,
+    Model2
   },
   data() {
     return {
       showContent: false,
-      dateItem: []
+      showContent2: false,
+      dateItem: [],
     }
   },
   computed: {
@@ -47,7 +53,7 @@ export default {
     },
     myWallet() {
       return this.$store.getters.myWallet
-    },
+    }
   },
   created() {
     this.$store.dispatch('setUser', {
@@ -59,10 +65,17 @@ export default {
       this.showContent = true
       this.dateItem = userDate
       console.log(userDate)
-      //this.$store.dispatch('setModel', userDate)
     },    
+    openModel2(userDate) {
+      this.showContent2 = true
+      this.dateItem = userDate
+      console.log(userDate)
+    },
     closeModal() {
       this.showContent = false
+    },
+    closeModel2() {
+      this.showContent2 = false
     },
     signOut() {
       this.$store.dispatch('signOut')

@@ -2,19 +2,19 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 import firebase from 'firebase'
 import router from '@/router'
-//import { set } from 'vue/types/umd'
-//import createPersistedState from 'vuex-persistedstate'
+import createPersistedState from "vuex-persistedstate";
 
 Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
     username: '',
-    myWallet: '500',
     users: [],
     email: '',
     password: '',
+    sendWallet: '',
     loggedIn: false,
+    myWallet: ''
   },
   getters: {
     setUsername(state) {
@@ -32,15 +32,21 @@ export default new Vuex.Store({
       state.username = payload.username
       state.email = payload.email
       state.password = payload.password
+      state.myWallet = payload.myWallet
     },
     loginState(state, payload) {
-      state.username = payload.username
       state.email = payload.email
       state.password = payload.password
+      state.myWallet = payload.myWallet
+    },
+    sendModel(state, payload) { 
+      state.sendWallet = payload.sendWallet
+      state.myWallet = payload
     },
   },
   actions: {
     setUser() {
+      this.state.users = []
       const db = firebase.firestore()
       firebase.auth().onAuthStateChanged((user) => {
         if (user) {
@@ -52,17 +58,17 @@ export default new Vuex.Store({
               const userDate = {
                 uid: doc.get('uid'),
                 name: doc.data().username,
-                myWallet: doc.data().myWallet
-              }       
+                myWallet: doc.get('myWallet'),
+              }  
               this.state.users.splice(4,this.state.users.length)
-              this.state.users.push(userDate) 
+              this.state.users.push(userDate)
             });
           })
           .catch((error) => {
             console.log("Error getting documents: ", error);
           });
         }
-      });
+      })
     },
     signOut() {
       firebase.auth().signOut()
@@ -93,7 +99,7 @@ export default new Vuex.Store({
               email: payload.email,
               password: payload.password,
               username: payload.username,
-              myWallet: this.state.myWallet
+              myWallet: 500
           })
         })
         .then(() => {
@@ -111,7 +117,15 @@ export default new Vuex.Store({
       .auth()
       .signInWithEmailAndPassword(payload.email, payload.password)
       .then(() => {
-        context.commit('loginState', payload)
+        const user = firebase.auth().currentUser
+        const sfDocRef = firebase.firestore().collection('user').doc(user.uid)
+        sfDocRef.get().then((doc) => {
+            if (doc.exists) {
+              context.commit('loginState', doc);
+            } else {
+              console.log('No such document!');
+            }
+          })
       })
       .then(() => {
         console.log('ログイン成功!');
@@ -121,11 +135,26 @@ export default new Vuex.Store({
         console.error('エラー :', e.message)
       })
     },
-    /*
-    setModel(context, payload) {
+    sendModel(context, payload) {
+      const user = firebase.auth().currentUser;
+      const db = firebase.firestore();
+      const sfDocRef = db.collection('user').doc(user.uid);
+      return db.runTransaction((transaction) => {
+        return transaction.get(sfDocRef).then((sfDoc) => {
+          console.log(sfDoc.data().myWallet)
+          console.log(this.state.myWallet)
+          const sendWallets = sfDoc.data().myWallet - payload.sendWallet
+          transaction.update(sfDocRef, { myWallet: sendWallets })
+          console.log(this.state.myWallet)
+          context.commit('sendModel', sendWallets)
+          console.log(this.state.myWallet)
+          console.log(sendWallets)
+
+        })
+      })
     }
-    */
   },
+  plugins: [createPersistedState({key: 'anyGreatApp'})] 
 })
 
 
