@@ -56,6 +56,7 @@ export default {
     }
   },
   created() {
+    console.log(this.myWallet);
     this.$store.dispatch('setUser', {
       username: this.username,
     },)
@@ -68,7 +69,7 @@ export default {
     },    
     openModel2(userDate) {
       this.showContent2 = true
-      this.dateItem = userDate
+      this.dateItem = userDate,
       console.log(userDate)
     },
     closeModal() {
