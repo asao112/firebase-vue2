@@ -15,7 +15,7 @@ export default {
   data() {
     return {
       showContent2: false,
-      sendWallet: ''
+      sendWallet: '',
     };
   },
   methods: {

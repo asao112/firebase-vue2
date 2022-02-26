@@ -170,23 +170,16 @@ export default new Vuex.Store({
       const db = firebase.firestore();
       const docOther = db.collection('user').doc(payload.val['uid']);
       const sfDocRef = db.collection('user').doc(user.uid);
-      //ログインユーザの更新と残高変動
+      //ログインユーザ, 選択ユーザーの更新と残高変動
       return db.runTransaction((transaction) => {
-        return transaction.get(sfDocRef).then((sfDoc) => {
+        return transaction.get(sfDocRef, docOther).then((sfDoc) => {
           const sendWallets = sfDoc.data().myWallet - payload.sendWallet
+          const select = payload.val['myWallet'] + payload.sendWallet
           transaction.update(sfDocRef, { myWallet: sendWallets })
+          transaction.update(docOther, {myWallet: select})
           context.commit('sendModel', sendWallets)
           context.commit('receiveWallet', payload)
-        })
-      })
-      .then(() => {
-        //選択ユーザの残高変動
-        return db.runTransaction((transaction) => {
-          return transaction.get(docOther).then(() => {
-            const select = payload.val['myWallet'] + payload.sendWallet
-            transaction.update(docOther, {myWallet: select})
-            context.commit('receiveWallet', payload)
-          })
+          console.log(payload.val['myWallet'] + payload.sendWallet)
         })
       })
       .then(() => {
