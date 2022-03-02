@@ -2,7 +2,7 @@
   <div id="overlay" v-show="showContent">
     <div id="content">
       <p>{{val.name}}さんの残高</p>
-      <p>{{val.myWallet}}</p>
+      <p type="namber">{{val.myWallet}}</p>
       <p>
         <button @click="closeModal" class="modal-button">close</button>
       </p>
@@ -17,11 +17,6 @@ export default {
     return {
       showContent: false,
     };
-  },
-  computed: {
-    myWallet() {
-      return this.$store.getters.myWallet
-    },
   },
   methods: {
     openModal() {

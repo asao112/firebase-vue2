@@ -2,19 +2,20 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 import firebase from 'firebase'
 import router from '@/router'
-//import { set } from 'vue/types/umd'
-//import createPersistedState from 'vuex-persistedstate'
+import createPersistedState from "vuex-persistedstate";
 
 Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
     username: '',
-    myWallet: '500',
     users: [],
     email: '',
     password: '',
+    sendWallet: '',
     loggedIn: false,
+    myWallet: '',
+    val: {myWallet: '', name: '', uid:''}
   },
   getters: {
     setUsername(state) {
@@ -32,15 +33,33 @@ export default new Vuex.Store({
       state.username = payload.username
       state.email = payload.email
       state.password = payload.password
+      state.myWallet = payload.myWallet
+      state.sendWallet = payload.sendWallet
     },
     loginState(state, payload) {
-      state.username = payload.username
       state.email = payload.email
       state.password = payload.password
+      state.myWallet = payload.myWallet
+      state.sendWallet = payload.sendWallet
     },
+    sendModel(state, payload) { 
+      state.sendWallet = payload.sendWallet
+      state.myWallet = payload
+    },
+    setUser(state, payload) {
+      state.myWallet = payload.myWallet
+    },
+    receiveWallet(state, payload) {
+      state.val['name']= payload
+      state.sendWallet = payload.sendWallet
+      state.users = payload
+      state.val['myWallet'] = payload
+      state.val['uid'] = payload
+    }
   },
   actions: {
-    setUser() {
+    setUser(context) {
+      this.state.users = []
       const db = firebase.firestore()
       firebase.auth().onAuthStateChanged((user) => {
         if (user) {
@@ -52,17 +71,30 @@ export default new Vuex.Store({
               const userDate = {
                 uid: doc.get('uid'),
                 name: doc.data().username,
-                myWallet: doc.data().myWallet
-              }       
+                myWallet: doc.get('myWallet'),
+              }  
               this.state.users.splice(4,this.state.users.length)
-              this.state.users.push(userDate) 
+              this.state.users.push(userDate)
             });
+          })
+          .then(() => {
+            const user = firebase.auth().currentUser
+            const sfDocRef = firebase.firestore().collection('user').doc(user.uid)
+            sfDocRef.get().then((doc) => {
+              if (doc.exists) {
+                console.log(doc.data().myWallet)
+                const wallets = { myWallet: doc.data().myWallet }
+                context.commit('setUser', wallets)
+              } else {
+                console.log('No such document!');
+              }
+            })
           })
           .catch((error) => {
             console.log("Error getting documents: ", error);
           });
         }
-      });
+      })
     },
     signOut() {
       firebase.auth().signOut()
@@ -93,13 +125,14 @@ export default new Vuex.Store({
               email: payload.email,
               password: payload.password,
               username: payload.username,
-              myWallet: this.state.myWallet
+              myWallet: 500
           })
         })
         .then(() => {
           context.commit('registerState', payload)
         })  
         .then(() => {
+          console.log(payload)
           router.push('/about')
         })})
       .catch((e) => {
@@ -111,9 +144,18 @@ export default new Vuex.Store({
       .auth()
       .signInWithEmailAndPassword(payload.email, payload.password)
       .then(() => {
-        context.commit('loginState', payload)
+        const user = firebase.auth().currentUser
+        const sfDocRef = firebase.firestore().collection('user').doc(user.uid)
+        sfDocRef.get().then((doc) => {
+            if (doc.exists) {
+              context.commit('loginState', doc);
+            } else {
+              console.log('No such document!');
+            }
+          })
       })
       .then(() => {
+        console.log(payload)
         console.log('ログイン成功!');
         router.push('/about');
       })
@@ -121,11 +163,50 @@ export default new Vuex.Store({
         console.error('エラー :', e.message)
       })
     },
-    /*
-    setModel(context, payload) {
-    }
-    */
+    sendModel(context, payload) {
+      console.log(payload.val['myWallet'])
+      context.commit('receiveWallet', payload)
+      const user = firebase.auth().currentUser;
+      const db = firebase.firestore();
+      const docOther = db.collection('user').doc(payload.val['uid']);
+      const sfDocRef = db.collection('user').doc(user.uid);
+      //ログインユーザ, 選択ユーザーの更新と残高変動
+      return db.runTransaction((transaction) => {
+        return transaction.get(sfDocRef, docOther).then((sfDoc) => {
+          const sendWallets = sfDoc.data().myWallet - payload.sendWallet
+          const select = payload.val['myWallet'] + payload.sendWallet
+          transaction.update(sfDocRef, { myWallet: sendWallets })
+          transaction.update(docOther, {myWallet: select})
+          context.commit('sendModel', sendWallets)
+          context.commit('receiveWallet', payload)
+          console.log(payload.val['myWallet'] + payload.sendWallet)
+        })
+      })
+      .then(() => {
+        //storeのデータを更新
+        const users = [];
+        db.collection('user')
+          .where(firebase.firestore.FieldPath.documentId(), '!=', user.uid).limit(5)
+          .get()
+          .then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+              const data = {
+                uid: doc.get('uid'),
+                name: doc.data().username,
+                myWallet: doc.data().myWallet
+              }
+              users.splice(4,this.state.users.length)
+              users.push(data);
+              context.commit('receiveWallet', users);
+            });
+          })
+          .catch((error) => {
+            console.log(error.message);
+          });
+      });
+    },
   },
+  plugins: [createPersistedState({key: 'anyGreatApp'})] 
 })
 
 
